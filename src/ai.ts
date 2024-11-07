@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { bindThis } from '@/decorators.js';
 import loki from 'lokijs';
 import got from 'got';
+import { FormData, File } from 'formdata-node';
 import chalk from 'chalk';
 import { v4 as uuid } from 'uuid';
 
@@ -11,7 +12,7 @@ import config from '@/config.js';
 import Module from '@/module.js';
 import Message from '@/message.js';
 import Friend, { FriendDoc } from '@/friend.js';
-import { User } from '@/misskey/user.js';
+import type { User } from '@/misskey/user.js';
 import Stream from '@/stream.js';
 import log from '@/utils/log.js';
 import { sleep } from './utils/sleep.js';
@@ -86,7 +87,7 @@ export default class 藍 {
 		}
 		const file = process.env.NODE_ENV === 'test' ? `${memoryDir}/test.memory.json` : `${memoryDir}/memory.json`;
 
-		this.log(`Lodaing the memory from ${file}...`);
+		this.log(`Загрузка памяти из ${file}...`);
 
 		this.db = new loki(file, {
 			autoload: true,
@@ -94,9 +95,9 @@ export default class 藍 {
 			autosaveInterval: 1000,
 			autoloadCallback: err => {
 				if (err) {
-					this.log(chalk.red(`Failed to load the memory: ${err}`));
+					this.log(chalk.red(`Не удалось загрузить память: ${err}`));
 				} else {
-					this.log(chalk.green('The memory loaded successfully'));
+					this.log(chalk.green('Память загрузилась успешно!'));
 					this.run();
 				}
 			}
@@ -105,7 +106,7 @@ export default class 藍 {
 
 	@bindThis
 	public log(msg: string) {
-		log(chalk`[{magenta AiOS}]: ${msg}`);
+		log(`[${chalk.magenta('AiOS')}]: ${msg}`);
 	}
 
 	@bindThis
@@ -184,7 +185,7 @@ export default class 藍 {
 
 		// Install modules
 		this.modules.forEach(m => {
-			this.log(`Installing ${chalk.cyan.italic(m.name)}\tmodule...`);
+			this.log(`Установка модуля ${chalk.cyan.italic(m.name)}\t...`);
 			m.init(this);
 			const res = m.install();
 			if (res != null) {
@@ -200,7 +201,7 @@ export default class 藍 {
 
 		setInterval(this.logWaking, 10000);
 
-		this.log(chalk.green.bold('Ai am now running!'));
+		this.log(chalk.green.bold('Аи бежит СЕЙЧАС!'));
 	}
 
 	/**
@@ -209,7 +210,7 @@ export default class 藍 {
 	 */
 	@bindThis
 	private async onReceiveMessage(msg: Message): Promise<void> {
-		this.log(chalk.gray(`<<< An message received: ${chalk.underline(msg.id)}`));
+		this.log(chalk.gray(`<<< Получено сообщение: ${chalk.underline(msg.id)}`));
 
 		// Ignore message if the user is a bot
 		// To avoid infinity reply loop.
@@ -296,7 +297,7 @@ export default class 藍 {
 		for (const timer of timers) {
 			// タイマーが時間切れかどうか
 			if (Date.now() - (timer.insertedAt + timer.delay) >= 0) {
-				this.log(`Timer expired: ${timer.module} ${timer.id}`);
+				this.log(`Таймер истек: ${timer.module} ${timer.id}`);
 				this.timers.remove(timer);
 				this.timeoutCallbacks[timer.module](timer.data);
 			}
@@ -343,17 +344,14 @@ export default class 藍 {
 	 * ファイルをドライブにアップロードします
 	 */
 	@bindThis
-	public async upload(file: Buffer | fs.ReadStream, meta: any) {
+	public async upload(file: Buffer | fs.ReadStream, meta: { filename: string, contentType: string }) {
+		const form = new FormData();
+		form.set('i', config.i);
+		form.set('file', new File([file], meta.filename, { type: meta.contentType }));
+
 		const res = await got.post({
 			url: `${config.apiUrl}/drive/files/create`,
-			formData: {
-				i: config.i,
-				file: {
-					value: file,
-					options: meta
-				}
-			},
-			json: true
+			body: form
 		}).json();
 		return res;
 	}
@@ -439,7 +437,7 @@ export default class 藍 {
 			data: data
 		});
 
-		this.log(`Timer persisted: ${module.name} ${id} ${delay}ms`);
+		this.log(`Таймер сохраняется: ${module.name} ${id} ${delay}ms`);
 	}
 
 	@bindThis

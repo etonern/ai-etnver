@@ -10,7 +10,7 @@ import got from 'got';
 import * as Reversi from './engine.js';
 import config from '@/config.js';
 import serifs from '@/serifs.js';
-import { User } from '@/misskey/user.js';
+import type { User } from '@/misskey/user.js';
 
 function getUserName(user) {
 	return user.name || user.username;
@@ -107,6 +107,12 @@ class Session {
 	 */
 	private onStarted = (msg: any) =>  {
 		this.game = msg.game;
+		if (this.game.canPutEverywhere) { // 対応してない
+			process.send!({
+				type: 'ended'
+			});
+			process.exit();
+		}
 
 		// TLに投稿する
 		this.postGameStarted().then(note => {
@@ -257,7 +263,7 @@ class Session {
 					}
 					break;
 				}
-	
+
 				default:
 					break;
 			}

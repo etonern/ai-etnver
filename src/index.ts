@@ -1,5 +1,6 @@
 // AiOS bootstrapper
 
+import process from 'node:process';
 import chalk from 'chalk';
 import got from 'got';
 import promiseRetry from 'promise-retry';
@@ -45,8 +46,15 @@ function log(msg: string): void {
 
 log(chalk.bold(`Ai v${pkg._v}`));
 
+process.on('uncaughtException', err => {
+	try {
+		console.error(`Непонятное исключение: ${err.message}`);
+		console.dir(err, { colors: true, depth: 2 });
+	} catch { }
+});
+
 promiseRetry(retry => {
-	log(`Account fetching... ${chalk.gray(config.host)}`);
+	log(`Получение аккаунта... ${chalk.gray(config.host)}`);
 
 	// アカウントをフェッチ
 	return got.post(`${config.apiUrl}/i`, {
@@ -58,9 +66,9 @@ promiseRetry(retry => {
 	retries: 3
 }).then(account => {
 	const acct = `@${account.username}`;
-	log(chalk.green(`Account fetched successfully: ${chalk.underline(acct)}`));
+	log(chalk.green(`Аккаунт получен успешно: ${chalk.underline(acct)}`));
 
-	log('Starting AiOS...');
+	log('Запуск AiOS...');
 
 	// 藍起動
 	new 藍(account, [
@@ -90,5 +98,5 @@ promiseRetry(retry => {
 		new CheckCustomEmojisModule(),
 	]);
 }).catch(e => {
-	log(chalk.red('Failed to fetch the account'));
+	log(chalk.red('Не удалось получить аккаунт.'));
 });

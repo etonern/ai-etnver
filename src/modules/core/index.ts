@@ -4,7 +4,7 @@ import Message from '@/message.js';
 import serifs from '@/serifs.js';
 import { safeForInterpolate } from '@/utils/safe-for-interpolate.js';
 
-const titles = ['さん', 'くん', '君', 'ちゃん', '様', '先生'];
+const titles = ['さん', 'くん', '君', 'ちゃん', '様', '先生', '同志'];
 
 export default class extends Module {
 	public readonly name = 'core';
@@ -61,12 +61,15 @@ export default class extends Module {
 	}
 
 	@bindThis
-	private setName(msg: Message): boolean  {
+	private setName(msg: Message): boolean {
 		if (!msg.text) return false;
 		if (!msg.text.includes('って呼んで')) return false;
 		if (msg.text.startsWith('って呼んで')) return false;
 
-		const name = msg.text.match(/^(.+?)って呼んで/g)![1];
+		// 修正: グローバルフラグを削除し、マッチング結果を確認
+		const match = msg.text.match(/^(.+?)って呼んで/);
+		if (!match) return false; // マッチしていなければfalseを返す
+		const name = match[1]; // 安全にアクセス
 
 		if (name.length > 10) {
 			msg.reply(serifs.core.tooLong);
@@ -93,6 +96,7 @@ export default class extends Module {
 
 		return true;
 	}
+
 
 	@bindThis
 	private modules(msg: Message): boolean  {
